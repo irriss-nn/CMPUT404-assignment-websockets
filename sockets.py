@@ -12,7 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
+# reference: https://github.com/uofa-cmput404/cmput404-slides/tree/master/examples/WebSocketsExamples
+# apply from the ws example
 import flask
 from flask import Flask, request
 from flask_sockets import Sockets
@@ -88,12 +89,10 @@ def flask_post_json():
     else:
         return json.loads(request.form.keys()[0])
 
-def send_all(msg):
-    for c in clients:
-        c.put(msg)
-
 def send_all_json(obj):
-    send_all(json.dumps(obj))
+    for c in clients:
+        c.put(json.dumps(obj))
+
 
 myWorld.add_set_listener(set_listener)
 
@@ -109,10 +108,9 @@ def read_ws(ws,client):
     # XXX: TODO IMPLEMENT ME
     try:
         while True:
-            msg = ws.receive()
-            print("WS RECV: %s" % msg)
-            if (msg is not None):
-                packet = json.loads(msg)
+            message = ws.receive()
+            if (message):
+                packet = json.loads(message)
                 for entity in packet:
                     myWorld.set(entity, packet[entity])
                 send_all_json( packet )
@@ -128,19 +126,17 @@ def subscribe_socket(ws):
     # XXX: TODO IMPLEMENT ME
     client = Client()
     clients.append(client)
-    g = gevent.spawn( read_ws, ws, client )    
-    print("Subscribing")
+    obj = gevent.spawn( read_ws, ws, client )    
     try:
         while True:
             # block here
-            msg = client.get()
-            print("Got a message!")
-            ws.send(msg)
+            message = client.get()
+            ws.send(message)
     except Exception as e:# WebSocketError as e:
-        print("WS Error %s" % e)
+        print("Error %s" % e)
     finally:
         clients.remove(client)
-        gevent.kill(g)
+        gevent.kill(obj)
 
 
 # I give this to you, this is how you get the raw body/data portion of a post in flask
